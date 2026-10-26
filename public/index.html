@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101827">
+    <title>AirBridge — Transfer File</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b1120;
+            --panel: #151e30;
+            --border: #29364b;
+            --text: #edf3ff;
+            --muted: #9baac0;
+            --accent: #69e0c0;
+            --danger: #ff8585;
+
+            --surface: #101a2b;
+            --input-bg: #0d1727;
+            --secondary-bg: #293951;
+            --secondary-text: #edf3ff;
+            --file-icon-bg: #24344a;
+            --status-bg: #203349;
+            --status-error-bg: #49272e;
+            --status-error-text: #ffd0d0;
+            --dropzone-border: #536b87;
+            --panel-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+        }
+
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f3f6fb;
+            --panel: #ffffff;
+            --border: #dce3ed;
+            --text: #172338;
+            --muted: #64748b;
+            --accent: #087f68;
+            --danger: #b42332;
+
+            --surface: #f8fafc;
+            --input-bg: #ffffff;
+            --secondary-bg: #e8edf5;
+            --secondary-text: #243248;
+            --file-icon-bg: #e8eef6;
+            --status-bg: #e8f1fb;
+            --status-error-bg: #fee9e9;
+            --status-error-text: #991b1b;
+            --dropzone-border: #9aabc0;
+            --panel-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root[data-theme="system"] {
+                color-scheme: light;
+                --bg: #f3f6fb;
+                --panel: #ffffff;
+                --border: #dce3ed;
+                --text: #172338;
+                --muted: #64748b;
+                --accent: #087f68;
+                --danger: #b42332;
+
+                --surface: #f8fafc;
+                --input-bg: #ffffff;
+                --secondary-bg: #e8edf5;
+                --secondary-text: #243248;
+                --file-icon-bg: #e8eef6;
+                --status-bg: #e8f1fb;
+                --status-error-bg: #fee9e9;
+                --status-error-text: #991b1b;
+                --dropzone-border: #9aabc0;
+                --panel-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at top, #182b43, transparent 55%), var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button, input { font: inherit; }
+
+        button {
+            border: 0;
+            border-radius: 11px;
+            padding: 12px 17px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button:disabled { opacity: .5; cursor: not-allowed; }
+
+        .container {
+            width: min(900px, 100%);
+            margin: auto;
+            padding: 28px 16px 45px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #69e0c0, #82aaff);
+            color: #101827;
+            font-size: 27px;
+            font-weight: 900;
+        }
+
+        h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); }
+        h2 { margin: 0 0 8px; font-size: 19px; }
+        p { margin: 7px 0 0; }
+        .muted { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+        .panel {
+            padding: 22px;
+            margin-bottom: 18px;
+            background: rgba(21, 30, 48, .94);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
+
+        .primary { background: var(--accent); color: #10221f; }
+        .secondary { background: #293951; color: var(--text); }
+        .danger { background: #48272f; color: #ffb4b4; }
+
+        .field { display: grid; gap: 8px; margin-top: 18px; }
+
+        .field label { font-size: 13px; color: var(--muted); }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            min-width: 0;
+            padding: 13px 14px;
+            border: 1px solid #40516b;
+            border-radius: 11px;
+            background: #0d1727;
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        .pin-input {
+            text-align: center;
+            font-size: 27px !important;
+            letter-spacing: 9px;
+        }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 17px; }
+
+        .status {
+            display: none;
+            margin-top: 15px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #203349;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .status.visible { display: block; }
+        .status.error { background: #49272e; color: #ffd0d0; }
+
+        .upload-progress {
+            margin-top: 16px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: #101a2b;
+        }
+
+        .upload-progress[hidden] {
+            display: none;
+        }
+
+        .progress-heading,
+        .progress-details {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .progress-heading {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .progress-percent {
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-track {
+            height: 9px;
+            margin-top: 12px;
+            overflow: hidden;
+            border-radius: 99px;
+            background: #29364b;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #69e0c0, #82aaff);
+            transition: width .12s linear;
+        }
+
+        .progress-details {
+            flex-wrap: wrap;
+            margin-top: 9px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .dropzone {
+            display: block;
+            margin-top: 20px;
+            padding: 25px 14px;
+            text-align: center;
+            border: 1.5px dashed #536b87;
+            border-radius: 15px;
+            background: #101a2b;
+            cursor: pointer;
+        }
+
+        .dropzone strong { display: block; }
+        .dropzone span { display: block; margin-top: 7px; color: var(--muted); font-size: 13px; }
+        .upload-icon { font-size: 35px; margin-bottom: 8px; }
+        #fileInput { display: none; }
+        .selected { margin-top: 12px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .file-list { display: grid; gap: 10px; }
+
+        .file {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            padding: 13px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+        }
+
+        .file-icon {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            background: #24344a;
+            border-radius: 12px;
+            font-size: 20px;
+        }
+
+        .file-info { min-width: 0; flex: 1; }
+        .file-name { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+        .file-size { margin-top: 4px; color: var(--muted); font-size: 12px; }
+        .file-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+        .file-actions button { padding: 9px 11px; font-size: 12px; }
+        .empty { padding: 28px 12px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 13px; }
+
+        footer { padding: 10px; text-align: center; color: var(--muted); font-size: 12px; }
+
+        [hidden] { display: none !important; }
+
+
+        .connection-qr-panel {
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #101a2b;
+        }
+
+        .connection-qr-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .connection-qr-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .connection-qr-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--panel);
+            text-align: center;
+        }
+
+        .connection-qr-image {
+            display: block;
+            width: min(100%, 220px);
+            aspect-ratio: 1;
+            object-fit: contain;
+            padding: 8px;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .connection-qr-url {
+            width: 100%;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .connection-qr-card button {
+            width: 100%;
+            padding: 10px 12px;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 18px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+        }
+
+        .server-status-dot {
+            width: 10px;
+            height: 10px;
+            flex: 0 0 10px;
+            margin-top: 5px;
+            border-radius: 50%;
+            background: #d97706;
+        }
+
+        .server-status-dot.online {
+            background: #16a34a;
+            box-shadow: 0 0 0 4px rgb(22 163 74 / 12%);
+        }
+
+        .server-status-dot.offline {
+            background: #dc2626;
+            box-shadow: 0 0 0 4px rgb(220 38 38 / 12%);
+        }
+
+        .server-status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .server-status-info strong {
+            font-size: 14px;
+        }
+
+        .server-status-info .muted {
+            font-size: 12px;
+        }
+
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .storage-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+        }
+
+        .storage-card strong {
+            font-size: 22px;
+            overflow-wrap: anywhere;
+        }
+
+        .storage-card .muted {
+            font-size: 12px;
+        }
+
+        .storage-meter {
+            margin-top: 22px;
+        }
+
+        .storage-meter-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .storage-meter-track {
+            height: 10px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: var(--border);
+        }
+
+        .storage-meter-bar {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: #16a34a;
+            transition: width 0.25s ease;
+        }
+
+        .storage-meter-bar.warning {
+            background: #d97706;
+        }
+
+        .storage-meter-bar.danger {
+            background: #dc2626;
+        }
+
+        .storage-warning {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border: 1px solid #d97706;
+            border-radius: 10px;
+            background: rgb(217 119 6 / 10%);
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .storage-warning.danger {
+            border-color: #dc2626;
+            background: rgb(220 38 38 / 10%);
+        }
+
+        @media (max-width: 600px) {
+            .storage-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .storage-card {
+                padding: 14px;
+            }
+
+            .storage-card strong {
+                font-size: 20px;
+            }
+        }
+
+        .file-selection-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 16px 0;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 12px;
+        }
+
+        .file-select-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .file-select-all input,
+        .file-select-checkbox {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--primary, #2563eb);
+        }
+
+        .file-selection-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .file-selection-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .file-select-checkbox {
+            margin: 0 2px 0 0;
+        }
+
+        @media (max-width: 480px) {
+            .file-selection-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .file-selection-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Tema AirBridge */
+        body {
+            background:
+                radial-gradient(ellipse at top, var(--surface), transparent 55%),
+                var(--bg);
+            color: var(--text);
+            transition: background-color .2s ease, color .2s ease;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-color: var(--border);
+            box-shadow: var(--panel-shadow);
+        }
+
+        .secondary {
+            background: var(--secondary-bg);
+            color: var(--secondary-text);
+        }
+
+        .danger {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+
+        input[type="text"],
+        input[type="password"],
+        
+
+        .upload-progress,
+        .dropzone,
+        .connection-qr-panel,
+        .connection-qr-card,
+        .storage-card,
+        .server-status {
+            background: var(--surface);
+            border-color: var(--border);
+        }
+
+        .file {
+            border-color: var(--border);
+            background: var(--panel);
+        }
+
+        .file-icon {
+            background: var(--file-icon-bg);
+        }
+
+        .status {
+            background: var(--status-bg);
+            color: var(--text);
+        }
+
+        .status.error {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+
+        .dropzone {
+            border-color: var(--dropzone-border);
+        }
+
+        .progress-track,
+        .storage-meter-track {
+            background: var(--border);
+        }
+
+        @media (max-width: 560px) {
+            .container { padding: 20px 12px 35px; }
+            .panel { padding: 17px; }
+            .file { flex-wrap: wrap; }
+            .file-actions { width: 100%; }
+            .file-actions button { flex: 1; }
+        }
+
+        /* Header dan identitas AirBridge */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .brand-info {
+            min-width: 0;
+        }
+
+        .brand-info h1 {
+            line-height: 1.15;
+            letter-spacing: -0.8px;
+        }
+
+        .brand-info p {
+            margin-top: 7px;
+        }
+
+        /* Theme switcher */
+        .theme-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            flex-shrink: 0;
+            padding: 4px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            box-shadow: var(--panel-shadow);
+        }
+
+        .theme-option {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            min-height: 39px;
+            padding: 9px 11px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            transition:
+                background-color .18s ease,
+                color .18s ease,
+                border-color .18s ease;
+        }
+
+        .theme-option svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .theme-option:hover {
+            color: var(--text);
+            background: var(--panel);
+        }
+
+        .theme-option.active {
+            color: var(--text);
+            background: var(--panel);
+            border-color: var(--border);
+            box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+        }
+
+        .theme-option:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 560px) {
+            .app-header {
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .brand {
+                gap: 10px;
+            }
+
+            .logo {
+                width: 44px;
+                height: 44px;
+                border-radius: 13px;
+                font-size: 23px;
+                flex-shrink: 0;
+            }
+
+            .brand-info h1 {
+                font-size: 25px;
+            }
+
+            .brand-info p {
+                font-size: 12px;
+                max-width: 190px;
+            }
+
+            .theme-switcher {
+                gap: 2px;
+                padding: 3px;
+            }
+
+            .theme-option {
+                flex-direction: column;
+                gap: 4px;
+                min-width: 39px;
+                min-height: 42px;
+                padding: 6px 7px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .app-header {
+                flex-wrap: wrap;
+            }
+
+            .theme-switcher {
+                margin-left: auto;
+            }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            box-shadow: var(--panel-shadow);
+        }
+
+        .secondary {
+            background: var(--secondary-bg);
+            color: var(--secondary-text);
+        }
+
+        .danger {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            background: var(--input-bg);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .upload-progress,
+        .dropzone,
+        .connection-qr-panel,
+        .storage-card,
+        .server-status {
+            background: var(--surface);
+            border-color: var(--border);
+        }
+
+        .file {
+            background: var(--panel);
+            border-color: var(--border);
+        }
+
+        .file-icon {
+            background: var(--file-icon-bg);
+        }
+
+        .status {
+            background: var(--status-bg);
+            color: var(--text);
+        }
+
+        .status.error {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+
+        .dropzone {
+            border-color: var(--dropzone-border);
+        }
+
+        .progress-track,
+        .storage-meter-track {
+            background: var(--border);
+        }
+    </style>
+</head>
+
+<body>
+<main class="container">
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo">A</div>
+            <div class="brand-info">
+                <h1>AirBridge</h1>
+                <p class="muted">Transfer file langsung antar perangkat.</p>
+            </div>
+        </div>
+
+        <div class="theme-switcher" role="group" aria-label="Tema tampilan">
+            <button
+                class="theme-option"
+                type="button"
+                data-theme-option="light"
+                aria-label="Gunakan tema terang"
+                aria-pressed="false"
+                title="Light"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
+                </svg>
+                <span>Light</span>
+            </button>
+
+            <button
+                class="theme-option"
+                type="button"
+                data-theme-option="dark"
+                aria-label="Gunakan tema gelap"
+                aria-pressed="false"
+                title="Dark"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"></path>
+                </svg>
+                <span>Dark</span>
+            </button>
+
+            <button
+                class="theme-option"
+                type="button"
+                data-theme-option="system"
+                aria-label="Ikuti tema perangkat"
+                aria-pressed="false"
+                title="Auto"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="13" rx="2"></rect>
+                    <path d="M8 21h8m-4-4v4"></path>
+                </svg>
+                <span>Auto</span>
+            </button>
+        </div>
+    </header>
+
+    <section id="pairingPanel" class="panel">
+        <h2>Hubungkan perangkat</h2>
+        <p class="muted">
+            Masukkan PIN enam digit yang ditampilkan di terminal perangkat
+            yang menjalankan server AirBridge.
+        </p>
+
+
+        <div class="connection-qr-panel">
+            <div class="connection-qr-heading">
+                <div>
+                    <strong>Pindai QR untuk membuka AirBridge</strong>
+                    <p class="muted">Gunakan kamera iPhone. Pastikan kedua perangkat berada di jaringan yang sama.</p>
+                </div>
+                <button id="refreshQrBtn" class="secondary" type="button">Muat ulang QR</button>
+            </div>
+            <div id="connectionQrList" class="connection-qr-list">
+                <div class="empty">Memuat QR Code...</div>
+            </div>
+            <div id="connectionQrStatus" class="status" role="status" aria-live="polite"></div>
+        </div>
+
+        <form id="pairingForm">
+            <div class="field">
+                <label for="pinInput">PIN pairing</label>
+                <input
+                    id="pinInput"
+                    class="pin-input"
+                    type="password"
+                    inputmode="numeric"
+                    pattern="[0-9]{6}"
+                    maxlength="6"
+                    autocomplete="one-time-code"
+                    placeholder="••••••"
+                    required
+                >
+            </div>
+
+            <div class="actions">
+                <button id="pairBtn" class="primary" type="submit">
+                    Hubungkan
+                </button>
+            </div>
+        </form>
+
+        <div id="pairStatus" class="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section id="transferPanel" hidden>
+        <section class="panel">
+            <div class="toolbar">
+                <div>
+                    <h2>Perangkat terhubung</h2>
+                    <p class="muted">Sesi pairing aktif di browser ini.</p>
+                </div>
+                <button id="logoutBtn" class="secondary" type="button">Keluar</button>
+            </div>
+
+            <div class="server-status">
+                <span id="serverStatusDot" class="server-status-dot"></span>
+                <div class="server-status-info">
+                    <strong id="serverStatusText">Memeriksa koneksi...</strong>
+                    <span id="serverAddress" class="muted"></span>
+                    <span id="serverLastChecked" class="muted"></span>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="panel">
+            <h2>Kirim file</h2>
+            <p class="muted">
+                Pilih file dari perangkat ini untuk menyimpannya di server AirBridge.
+            </p>
+
+            <label class="dropzone" for="fileInput">
+                <div class="upload-icon">↥</div>
+                <strong>Pilih foto, video, atau dokumen</strong>
+                <span>Maksimal 100 file sekali kirim · 1 GB per file</span>
+            </label>
+
+            <input id="fileInput" type="file" multiple>
+            <div id="selected" class="selected">Belum ada file dipilih.</div>
+
+            <div class="actions">
+                <button id="uploadBtn" class="primary" type="button" disabled>Kirim file</button>
+                <button id="cancelUploadBtn" class="danger" type="button" hidden>
+                    Batalkan Upload
+                </button>
+                <button id="clearBtn" class="secondary" type="button">Bersihkan</button>
+            </div>
+
+            <div id="uploadProgress" class="upload-progress" hidden>
+                <div class="progress-heading">
+                    <span id="progressLabel">Menyiapkan upload...</span>
+                    <span id="progressPercent" class="progress-percent">0%</span>
+                </div>
+
+                <div
+                    id="progressTrack"
+                    class="progress-track"
+                    role="progressbar"
+                    aria-label="Progres upload"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="0"
+                >
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+
+                <div class="progress-details">
+                    <span id="progressSize">0 B / 0 B</span>
+                    <span id="progressSpeed">Menghitung kecepatan...</span>
+                    <span id="progressEta">Sisa waktu: —</span>
+                </div>
+            </div>
+
+            <div id="uploadStatus" class="status" role="status" aria-live="polite"></div>
+        </section>
+
+        
+        <section class="panel" id="storagePanel">
+            <div class="toolbar">
+                <div>
+                    <h2>Kapasitas penyimpanan</h2>
+                    <p class="muted">Ringkasan file dan ruang disk perangkat.</p>
+                </div>
+                <button id="storageRefreshBtn" class="secondary" type="button">
+                    Perbarui
+                </button>
+            </div>
+
+            <div class="storage-grid">
+                <div class="storage-card">
+                    <span class="muted">Jumlah file</span>
+                    <strong id="storageFileCount">—</strong>
+                    <span class="muted">File tersimpan</span>
+                </div>
+
+                <div class="storage-card">
+                    <span class="muted">Ukuran AirBridge</span>
+                    <strong id="storageTotalSize">—</strong>
+                    <span class="muted">Total semua file</span>
+                </div>
+
+                <div class="storage-card">
+                    <span class="muted">Ruang disk tersisa</span>
+                    <strong id="storageFreeSpace">—</strong>
+                    <span id="storageDiskSummary" class="muted">Kapasitas disk: —</span>
+                </div>
+            </div>
+
+            <div class="storage-meter">
+                <div class="storage-meter-heading">
+                    <strong>Penggunaan disk</strong>
+                    <span id="storageUsagePercent">—</span>
+                </div>
+                <div
+                    id="storageUsageTrack"
+                    class="storage-meter-track"
+                    role="progressbar"
+                    aria-label="Penggunaan disk perangkat"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="0"
+                >
+                    <div id="storageUsageBar" class="storage-meter-bar"></div>
+                </div>
+            </div>
+
+            <div id="storageWarning" class="storage-warning" role="status" aria-live="polite" hidden></div>
+            <div id="storageStatus" class="status" role="status" aria-live="polite"></div>
+        </section>
+
+
+        <section class="panel">
+            <div class="toolbar">
+                <div>
+                    <h2>File tersedia</h2>
+                    <p class="muted">File yang tersimpan di server.</p>
+                </div>
+                <button id="refreshBtn" class="secondary" type="button">Muat ulang</button>
+            </div>
+
+            
+            <div class="file-selection-toolbar">
+                <label class="file-select-all">
+                    <input id="selectAllFiles" type="checkbox">
+                    <span>Pilih semua</span>
+                </label>
+
+                <div class="file-selection-actions">
+                    <span id="selectedFileCount" class="muted">0 file dipilih</span>
+                    <button id="downloadZipBtn" class="primary" type="button" disabled>
+                        Unduh ZIP
+                    </button>
+                </div>
+            </div>
+
+            <div id="fileList" class="file-list">
+                <div class="empty">Memuat file...</div>
+            </div>
+
+        </section>
+    </section>
+
+    <footer>AirBridge · Jaringan lokal · Tanpa cloud</footer>
+</main>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+
+    const themeSelect = $('themeSelect');
+    const THEME_KEY = 'airbridge-theme';
+const themeOptions = document.querySelectorAll('[data-theme-option]');
+const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: light)');
+
+function applyTheme(theme) {
+    const allowedThemes = ['system', 'light', 'dark'];
+
+    if (!allowedThemes.includes(theme)) {
+        theme = 'system';
+    }
+
+    document.documentElement.dataset.theme = theme;
+
+    const effectiveTheme = theme === 'system'
+        ? (colorSchemeQuery.matches ? 'light' : 'dark')
+        : theme;
+
+    document.querySelector('meta[name="theme-color"]')
+        ?.setAttribute(
+            'content',
+            effectiveTheme === 'light' ? '#f3f6fb' : '#101827'
+        );
+
+    themeOptions.forEach((button) => {
+        const active = button.dataset.themeOption === theme;
+
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+}
+
+let savedTheme = 'system';
+
+try {
+    savedTheme = localStorage.getItem(THEME_KEY) || 'system';
+} catch {
+    // Gunakan tema perangkat jika localStorage tidak tersedia.
+}
+
+applyTheme(savedTheme);
+
+themeOptions.forEach((button) => {
+    button.addEventListener('click', () => {
+        const theme = button.dataset.themeOption;
+
+        applyTheme(theme);
+
+        try {
+            localStorage.setItem(THEME_KEY, theme);
+        } catch {
+            // Tema tetap aktif selama halaman ini terbuka.
+        }
+    });
+});
+
+colorSchemeQuery.addEventListener('change', () => {
+    if (document.documentElement.dataset.theme === 'system') {
+        applyTheme('system');
+    }
+});
+
+    const pairingPanel = $('pairingPanel');
+
+    const connectionQrList = $('connectionQrList');
+    const connectionQrStatus = $('connectionQrStatus');
+    const refreshQrBtn = $('refreshQrBtn');
+
+    function showQrStatus(message, error = false) {
+        connectionQrStatus.textContent = message;
+        connectionQrStatus.classList.add('visible');
+        connectionQrStatus.classList.toggle('error', error);
+    }
+
+    async function loadConnectionQr() {
+        refreshQrBtn.disabled = true;
+        refreshQrBtn.textContent = 'Memuat...';
+        connectionQrList.replaceChildren();
+
+        const loading = document.createElement('div');
+        loading.className = 'empty';
+        loading.textContent = 'Memuat QR Code...';
+        connectionQrList.append(loading);
+
+        try {
+            const response = await fetch('/api/connection-info', {
+                method: 'GET',
+                cache: 'no-store',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'QR Code tidak dapat dimuat.');
+            }
+
+            const connections = Array.isArray(data.connections)
+                ? data.connections
+                : [];
+
+            if (connections.length === 0) {
+                throw new Error('Alamat jaringan tidak ditemukan. Pastikan perangkat terhubung ke Wi-Fi atau hotspot.');
+            }
+
+            connectionQrList.replaceChildren();
+
+            for (const connection of connections) {
+                if (
+                    typeof connection.url !== 'string' ||
+                    typeof connection.qrCode !== 'string' ||
+                    !connection.qrCode.startsWith('data:image/png;base64,')
+                ) {
+                    continue;
+                }
+
+                const card = document.createElement('article');
+                card.className = 'connection-qr-card';
+
+                const image = document.createElement('img');
+                image.className = 'connection-qr-image';
+                image.src = connection.qrCode;
+                image.alt = `QR Code untuk ${connection.url}`;
+
+                const url = document.createElement('div');
+                url.className = 'connection-qr-url';
+                url.textContent = connection.url;
+
+                const copyButton = document.createElement('button');
+                copyButton.type = 'button';
+                copyButton.className = 'secondary';
+                copyButton.textContent = 'Salin alamat';
+                copyButton.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(connection.url);
+                        showQrStatus(`Alamat berhasil disalin: ${connection.url}`);
+                    } catch {
+                        showQrStatus(
+                            `Tidak dapat menyalin otomatis. Salin alamat ini secara manual: ${connection.url}`,
+                            true
+                        );
+                    }
+                });
+
+                card.append(image, url, copyButton);
+                connectionQrList.append(card);
+            }
+
+            if (connectionQrList.children.length === 0) {
+                throw new Error('Data QR Code tidak valid.');
+            }
+
+            connectionQrStatus.classList.remove('visible', 'error');
+            connectionQrStatus.textContent = '';
+        } catch (error) {
+            connectionQrList.replaceChildren();
+
+            const message = document.createElement('div');
+            message.className = 'empty';
+            message.textContent = error.message || 'Gagal memuat QR Code.';
+            connectionQrList.append(message);
+
+            showQrStatus('QR Code gagal dimuat. Periksa server dan coba muat ulang.', true);
+        } finally {
+            refreshQrBtn.disabled = false;
+            refreshQrBtn.textContent = 'Muat ulang QR';
+        }
+    }
+
+    refreshQrBtn.addEventListener('click', loadConnectionQr);
+    loadConnectionQr();
+
+    const transferPanel = $('transferPanel');
+    const pairingForm = $('pairingForm');
+    const pinInput = $('pinInput');
+    const pairBtn = $('pairBtn');
+    const pairStatus = $('pairStatus');
+    const uploadStatus = $('uploadStatus');
+    const uploadProgress = $('uploadProgress');
+    const progressLabel = $('progressLabel');
+    const progressPercent = $('progressPercent');
+    const progressBar = $('progressBar');
+    const progressTrack = $('progressTrack');
+    const progressSize = $('progressSize');
+    const progressSpeed = $('progressSpeed');
+    const progressEta = $('progressEta');
+    const fileInput = $('fileInput');
+    const selected = $('selected');
+    const uploadBtn = $('uploadBtn');
+    const cancelUploadBtn = $('cancelUploadBtn');
+    let currentUploadXhr = null;
+    const clearBtn = $('clearBtn');
+    const refreshBtn = $('refreshBtn');
+    const storageRefreshBtn = $('storageRefreshBtn');
+    const storageFileCount = $('storageFileCount');
+    const storageTotalSize = $('storageTotalSize');
+    const storageFreeSpace = $('storageFreeSpace');
+    const storageDiskSummary = $('storageDiskSummary');
+    const storageUsagePercent = $('storageUsagePercent');
+    const storageUsageTrack = $('storageUsageTrack');
+    const storageUsageBar = $('storageUsageBar');
+    const storageWarning = $('storageWarning');
+    const storageStatus = $('storageStatus');
+
+    function formatBytes(bytes) {
+        if (!Number.isFinite(bytes) || bytes < 0) return '—';
+        if (bytes < 1024) return `${bytes} B`;
+
+        const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
+        let value = bytes;
+        let unitIndex = -1;
+
+        do {
+            value /= 1024;
+            unitIndex++;
+        } while (value >= 1024 && unitIndex < units.length - 1);
+
+        return `${value.toLocaleString('id-ID', {
+            maximumFractionDigits: 2,
+        })} ${units[unitIndex]}`;
+    }
+
+    async function loadStorageInfo() {
+        storageRefreshBtn.disabled = true;
+        clearStatus(storageStatus);
+
+        try {
+            const data = await api('/api/storage');
+
+            storageFileCount.textContent =
+                data.fileCount.toLocaleString('id-ID');
+
+            storageTotalSize.textContent = formatBytes(data.totalBytes);
+            storageFreeSpace.textContent = formatBytes(data.diskFreeBytes);
+            storageDiskSummary.textContent =
+                `Kapasitas disk: ${formatBytes(data.diskTotalBytes)}`;
+
+            const usedPercent = data.diskTotalBytes > 0
+                ? Math.min(100, Math.max(
+                    0,
+                    (data.diskUsedBytes / data.diskTotalBytes) * 100
+                ))
+                : 0;
+
+            storageUsagePercent.textContent =
+                `${usedPercent.toLocaleString('id-ID', {
+                    maximumFractionDigits: 1,
+                })}% terpakai`;
+
+            storageUsageBar.style.width = `${usedPercent}%`;
+            storageUsageTrack.setAttribute(
+                'aria-valuenow',
+                String(Math.round(usedPercent))
+            );
+
+            storageUsageBar.classList.toggle(
+                'warning',
+                data.lowStorage && data.diskFreeBytes >= 1024 ** 3
+                    && data.diskFreePercent >= 10
+            );
+
+            storageUsageBar.classList.toggle(
+                'danger',
+                data.diskFreeBytes < 1024 ** 3
+                    && data.diskFreePercent < 10
+            );
+
+            storageWarning.hidden = !data.lowStorage;
+            storageWarning.classList.toggle(
+                'danger',
+                data.diskFreeBytes < 1024 ** 3
+                    && data.diskFreePercent < 10
+            );
+
+            if (data.lowStorage) {
+                storageWarning.textContent =
+                    `Peringatan: ruang disk mulai menipis. ` +
+                    `Tersisa ${formatBytes(data.diskFreeBytes)} ` +
+                    `(${data.diskFreePercent.toLocaleString('id-ID', {
+                        maximumFractionDigits: 1,
+                    })}%). Hapus file yang tidak diperlukan atau kosongkan ruang perangkat.`;
+            }
+        } catch (error) {
+            setStatus(storageStatus, error.message, true);
+        } finally {
+            storageRefreshBtn.disabled = false;
+        }
+    }
+
+    storageRefreshBtn.addEventListener('click', loadStorageInfo);
+
+    const logoutBtn = $('logoutBtn');
+    
+    const serverStatusDot = $('serverStatusDot');
+    const serverStatusText = $('serverStatusText');
+    const serverAddress = $('serverAddress');
+    const serverLastChecked = $('serverLastChecked');
+
+    let serverCheckInProgress = false;
+
+    serverAddress.textContent = `Alamat: ${window.location.origin}`;
+
+    async function checkServerConnection() {
+        if (serverCheckInProgress) return;
+
+        serverCheckInProgress = true;
+
+        try {
+            const response = await fetch('/api/status', {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                throw new Error('Server tidak merespons normal.');
+            }
+
+            const status = await response.json();
+
+            serverStatusDot.className = 'server-status-dot online';
+            serverStatusText.textContent = status.paired
+                ? 'Server online · Sesi terhubung'
+                : 'Server online · Belum pairing';
+
+            serverStatusLastChecked();
+        } catch {
+            serverStatusDot.className = 'server-status-dot offline';
+            serverStatusText.textContent = 'Server offline · Koneksi terputus';
+            serverLastChecked.textContent =
+                `Pemeriksaan terakhir: ${new Date().toLocaleTimeString('id-ID')}`;
+        } finally {
+            serverCheckInProgress = false;
+        }
+    }
+
+    function serverStatusLastChecked() {
+        serverLastChecked.textContent =
+            `Pemeriksaan terakhir: ${new Date().toLocaleTimeString('id-ID')}`;
+    }
+
+    checkServerConnection();
+    setInterval(checkServerConnection, 5000);
+
+    const fileList = $('fileList');
+
+    const selectAllFiles = $('selectAllFiles');
+    const selectedFileCount = $('selectedFileCount');
+    const downloadZipBtn = $('downloadZipBtn');
+
+    const selectedFileIds = new Set();
+    let availableFileIds = new Set();
+
+
+    let chosenFiles = [];
+    let busy = false;
+
+    function setStatus(element, message, error = false) {
+        element.textContent = message;
+        element.classList.add('visible');
+        element.classList.toggle('error', error);
+    }
+
+    function clearStatus(element) {
+        element.textContent = '';
+        element.classList.remove('visible', 'error');
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return `${bytes} B`;
+
+        const units = ['KB', 'MB', 'GB', 'TB'];
+        let size = bytes / 1024;
+        let unit = 0;
+
+        while (size >= 1024 && unit < units.length - 1) {
+            size /= 1024;
+            unit++;
+        }
+
+        return `${size.toFixed(1)} ${units[unit]}`;
+    }
+
+    function formatDuration(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return '—';
+        if (seconds < 1) return '< 1 dtk';
+
+        const totalSeconds = Math.ceil(seconds);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+
+        if (hours > 0) {
+            return `${hours} jam ${minutes} mnt`;
+        }
+
+        if (minutes > 0) {
+            return `${minutes} mnt ${secs} dtk`;
+        }
+
+        return `${secs} dtk`;
+    }
+
+    async function api(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            credentials: 'same-origin',
+            cache: 'no-store',
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json')
+            ? await response.json()
+            : {};
+
+        if (response.status === 401 && data.pairingRequired) {
+            showPairing();
+            throw new Error('Sesi berakhir. Masukkan PIN kembali.');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Permintaan gagal.');
+        }
+
+        return data;
+    }
+
+    function showPairing() {
+        pairingPanel.hidden = false;
+        transferPanel.hidden = true;
+        pinInput.value = '';
+    }
+
+    function showTransfer() {
+        pairingPanel.hidden = true;
+        transferPanel.hidden = false;
+        loadFiles();
+        loadStorageInfo();
+    }
+
+    async function checkSession() {
+        try {
+            const status = await api('/api/status');
+
+            if (status.paired) {
+                showTransfer();
+            } else {
+                showPairing();
+            }
+        } catch {
+            showPairing();
+        }
+    }
+
+    pairingForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearStatus(pairStatus);
+
+        const pin = pinInput.value.trim();
+
+        if (!/^\d{6}$/.test(pin)) {
+            setStatus(pairStatus, 'PIN harus terdiri dari enam angka.', true);
+            return;
+        }
+
+        pairBtn.disabled = true;
+        pairBtn.textContent = 'Menghubungkan...';
+
+        try {
+            const result = await api('/api/pair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin }),
+            });
+
+            setStatus(pairStatus, result.message);
+            showTransfer();
+        } catch (error) {
+            setStatus(pairStatus, error.message, true);
+        } finally {
+            pairBtn.disabled = false;
+            pairBtn.textContent = 'Hubungkan';
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        chosenFiles = Array.from(fileInput.files || []);
+        updateSelection();
+        clearStatus(uploadStatus);
+    });
+
+    function updateSelection() {
+        const total = chosenFiles.reduce((sum, file) => sum + file.size, 0);
+
+        selected.textContent = chosenFiles.length
+            ? `${chosenFiles.length} file dipilih · ${formatSize(total)}`
+            : 'Belum ada file dipilih.';
+
+        uploadBtn.disabled = busy || chosenFiles.length === 0;
+    }
+
+    clearBtn.addEventListener('click', () => {
+        chosenFiles = [];
+        fileInput.value = '';
+        updateSelection();
+        clearStatus(uploadStatus);
+    });
+        
+    cancelUploadBtn.addEventListener('click', () => {
+        if (currentUploadXhr && busy) {
+            cancelUploadBtn.disabled = true;
+            cancelUploadBtn.textContent = 'Membatalkan...';
+            currentUploadXhr.abort();
+        }
+    });
+    
+    uploadBtn.addEventListener('click', () => {
+        if (!chosenFiles.length || busy) return;
+
+        if (chosenFiles.length > 100) {
+            setStatus(
+                uploadStatus,
+                'Maksimal 100 file sekali kirim.',
+                true
+            );
+            return;
+        }
+
+        
+        const filesToUpload = [...chosenFiles];
+
+        const MAX_FILE_SIZE = 1024 * 1024 * 1024;
+        const MAX_FILES = 100;
+
+        if (filesToUpload.length > MAX_FILES) {
+            setStatus(
+                uploadStatus,
+                `Maksimal ${MAX_FILES} file sekali kirim.`,
+                true
+            );
+            return;
+        }
+
+        const oversizedFiles = filesToUpload.filter(
+            (file) => file.size > MAX_FILE_SIZE
+        );
+
+        if (oversizedFiles.length > 0) {
+            const names = oversizedFiles
+                .slice(0, 3)
+                .map((file) => file.name)
+                .join(', ');
+
+            const more = oversizedFiles.length > 3
+                ? ` dan ${oversizedFiles.length - 3} file lainnya`
+                : '';
+
+            setStatus(
+                uploadStatus,
+                `Ada ${oversizedFiles.length} file yang melebihi batas 1 GB: ${names}${more}. Hapus file tersebut dari pilihan sebelum mengirim.`,
+                true
+            );
+
+            return;
+        }
+
+        const formData = new FormData();
+
+
+        filesToUpload.forEach((file) => {
+            formData.append('files', file, file.name);
+        });
+
+        const totalSize = filesToUpload.reduce(
+            (sum, file) => sum + file.size,
+            0
+        );
+
+        const xhr = new XMLHttpRequest();
+        currentUploadXhr = xhr;
+        cancelUploadBtn.hidden = false;
+        cancelUploadBtn.disabled = false;
+        cancelUploadBtn.textContent = 'Batalkan Upload';
+        const startedAt = Date.now();
+
+        let lastLoaded = 0;
+        let lastTime = startedAt;
+        let speed = 0;
+
+        busy = true;
+        uploadBtn.textContent = 'Mengirim...';
+        updateSelection();
+        clearStatus(uploadStatus);
+
+        uploadProgress.hidden = false;
+        progressLabel.textContent = 'Mengirim file...';
+        progressPercent.textContent = '0%';
+        progressBar.style.width = '0%';
+        progressTrack.setAttribute('aria-valuenow', '0');
+        progressSize.textContent = `0 B / ${formatSize(totalSize)}`;
+        progressSpeed.textContent = 'Menghitung kecepatan...';
+        progressEta.textContent = 'Sisa waktu: —';
+
+        xhr.open('POST', '/api/upload');
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('Cache-Control', 'no-store');
+
+        xhr.upload.addEventListener('progress', (event) => {
+            if (!event.lengthComputable) {
+                progressLabel.textContent = 'Mengirim file...';
+                progressSpeed.textContent = 'Menghitung kecepatan...';
+                progressEta.textContent = 'Sisa waktu: —';
+                return;
+            }
+
+            const loaded = event.loaded;
+            const total = event.total;
+            const percent = total > 0
+                ? Math.min(100, Math.round((loaded / total) * 100))
+                : 0;
+
+            const elapsedSeconds = (Date.now() - startedAt) / 1000;
+
+            // Kecepatan rata-rata selama upload berjalan.
+            if (elapsedSeconds > 0) {
+                speed = loaded / elapsedSeconds;
+            }
+
+            const remainingBytes = Math.max(0, total - loaded);
+            const etaSeconds = speed > 0
+                ? remainingBytes / speed
+                : Infinity;
+
+            progressPercent.textContent = `${percent}%`;
+            progressBar.style.width = `${percent}%`;
+            progressTrack.setAttribute('aria-valuenow', String(percent));
+
+            progressSize.textContent =
+                `${formatSize(loaded)} / ${formatSize(total)}`;
+
+            progressSpeed.textContent = speed > 0
+                ? `${formatSize(speed)}/s`
+                : 'Menghitung kecepatan...';
+
+            progressEta.textContent = percent >= 100
+                ? 'Sisa waktu: 0 dtk'
+                : `Sisa waktu: ${formatDuration(etaSeconds)}`;
+        });
+
+        xhr.addEventListener('load', async () => {
+            let result = {};
+
+            try {
+                result = JSON.parse(xhr.responseText || '{}');
+            } catch {
+                result = {};
+            }
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                progressPercent.textContent = '100%';
+                progressBar.style.width = '100%';
+                progressTrack.setAttribute('aria-valuenow', '100');
+                progressLabel.textContent = 'Upload selesai';
+                progressEta.textContent = 'Sisa waktu: 0 dtk';
+                progressSpeed.textContent = 'Selesai';
+                progressSize.textContent =
+                    `${formatSize(totalSize)} / ${formatSize(totalSize)}`;
+
+                setStatus(
+                    uploadStatus,
+                    result.message || 'Upload berhasil.'
+                );
+
+                chosenFiles = [];
+                fileInput.value = '';
+            } else {
+                if (xhr.status === 401 && result.pairingRequired) {
+                    showPairing();
+                }
+
+                progressLabel.textContent = 'Upload gagal';
+
+                setStatus(
+                    uploadStatus,
+                    result.error || `Upload gagal (HTTP ${xhr.status}).`,
+                    true
+                );
+            }
+
+            busy = false;
+            currentUploadXhr = null;
+            cancelUploadBtn.hidden = true;
+            cancelUploadBtn.disabled = false;
+            cancelUploadBtn.textContent = 'Batalkan Upload';
+            uploadBtn.textContent = 'Kirim file';
+            updateSelection();
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    await loadFiles();
+                    await loadStorageInfo();
+                } catch (error) {
+                    console.error('Gagal memuat daftar file:', error);
+                }
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            progressLabel.textContent = 'Koneksi terputus';
+
+            setStatus(
+                uploadStatus,
+                'Upload gagal karena koneksi terputus. Periksa koneksi lalu muat ulang daftar file.',
+                true
+            );
+
+            busy = false;
+            currentUploadXhr = null;
+            cancelUploadBtn.hidden = true;
+            cancelUploadBtn.disabled = false;
+            cancelUploadBtn.textContent = 'Batalkan Upload';
+            uploadBtn.textContent = 'Kirim file';
+            updateSelection();
+        });
+
+        xhr.addEventListener('abort', () => {
+            progressLabel.textContent = 'Upload dibatalkan';
+            setStatus(uploadStatus, 'Upload dibatalkan.', true);
+
+            busy = false;
+            currentUploadXhr = null;
+            cancelUploadBtn.hidden = true;
+            cancelUploadBtn.disabled = false;
+            cancelUploadBtn.textContent = 'Batalkan Upload';
+            uploadBtn.textContent = 'Kirim file';
+            updateSelection();
+        });
+
+        xhr.addEventListener('timeout', () => {
+            progressLabel.textContent = 'Upload melewati batas waktu';
+            setStatus(uploadStatus, 'Upload melewati batas waktu.', true);
+
+            busy = false;
+            currentUploadXhr = null;
+            cancelUploadBtn.hidden = true;
+            cancelUploadBtn.disabled = false;
+            cancelUploadBtn.textContent = 'Batalkan Upload';
+            uploadBtn.textContent = 'Kirim file';
+            updateSelection();
+        });
+
+        xhr.send(formData);
+    });
+
+
+    function makeButton(label, className, action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.textContent = label;
+        button.addEventListener('click', action);
+        return button;
+    }
+
+    async function deleteFile(file) {
+        if (!confirm(`Hapus "${file.name}" dari server AirBridge?`)) return;
+
+        try {
+            const result = await api(
+                `/api/files/${encodeURIComponent(file.id)}`,
+                { method: 'DELETE' }
+            );
+
+            setStatus(uploadStatus, result.message);
+            await loadFiles();
+            await loadStorageInfo();
+        } catch (error) {
+            setStatus(uploadStatus, error.message, true);
+        }
+    }
+
+    function updateFileSelection() {
+        for (const id of selectedFileIds) {
+            if (!availableFileIds.has(id)) {
+                selectedFileIds.delete(id);
+            }
+        }
+
+        const checkboxes = fileList.querySelectorAll('.file-select-checkbox');
+        const total = checkboxes.length;
+        const selectedCount = selectedFileIds.size;
+
+        selectedFileCount.textContent = `${selectedCount} file dipilih`;
+        downloadZipBtn.disabled = selectedCount === 0;
+
+        selectAllFiles.disabled = total === 0;
+        selectAllFiles.checked = total > 0 && selectedCount === total;
+        selectAllFiles.indeterminate = selectedCount > 0 && selectedCount < total;
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.checked = selectedFileIds.has(checkbox.dataset.fileId);
+        });
+    }
+
+    async function loadFiles() {
+        fileList.replaceChildren();
+
+        const loading = document.createElement('div');
+        loading.className = 'empty';
+        loading.textContent = 'Memuat daftar file...';
+        fileList.append(loading);
+
+        try {
+            const files = await api('/api/files');
+            fileList.replaceChildren();
+
+            availableFileIds = new Set(files.map((file) => file.id));
+
+            for (const id of selectedFileIds) {
+                if (!availableFileIds.has(id)) {
+                    selectedFileIds.delete(id);
+                }
+            }
+
+            if (!files.length) {
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.textContent = 'Belum ada file. Pilih file di atas untuk memulai.';
+                fileList.append(empty);
+                updateFileSelection();
+                return;
+            }
+
+            for (const file of files) {
+                const row = document.createElement('article');
+                row.className = 'file';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'file-select-checkbox';
+                checkbox.dataset.fileId = file.id;
+                checkbox.checked = selectedFileIds.has(file.id);
+                checkbox.setAttribute('aria-label', `Pilih ${file.name}`);
+
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        selectedFileIds.add(file.id);
+                    } else {
+                        selectedFileIds.delete(file.id);
+                    }
+
+                    updateFileSelection();
+                });
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.textContent = '📄';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.textContent = file.name;
+
+                const size = document.createElement('div');
+                size.className = 'file-size';
+                size.textContent = formatSize(file.size);
+
+                info.append(name, size);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions';
+
+                const download = makeButton('Unduh', 'primary', () => {
+                    const link = document.createElement('a');
+                    link.href = `/api/download/${encodeURIComponent(file.id)}`;
+                    link.download = file.name;
+                    document.body.append(link);
+                    link.click();
+                    link.remove();
+                });
+
+                const remove = makeButton('Hapus', 'danger', () => deleteFile(file));
+
+                actions.append(download, remove);
+                row.append(checkbox, icon, info, actions);
+                fileList.append(row);
+            }
+
+            updateFileSelection();
+        } catch (error) {
+            fileList.replaceChildren();
+
+            const message = document.createElement('div');
+            message.className = 'empty';
+            message.textContent = error.message || 'Gagal memuat daftar file.';
+            fileList.append(message);
+
+            availableFileIds = new Set();
+            selectedFileIds.clear();
+            updateFileSelection();
+        }
+    }
+
+    selectAllFiles.addEventListener('change', () => {
+        if (selectAllFiles.checked) {
+            for (const id of availableFileIds) {
+                selectedFileIds.add(id);
+            }
+        } else {
+            selectedFileIds.clear();
+        }
+
+        updateFileSelection();
+    });
+
+    downloadZipBtn.addEventListener('click', async () => {
+        const ids = [...selectedFileIds].filter((id) => availableFileIds.has(id));
+
+        if (ids.length === 0) {
+            setStatus(uploadStatus, 'Pilih minimal satu file untuk diunduh.', true);
+            return;
+        }
+
+        downloadZipBtn.disabled = true;
+        downloadZipBtn.textContent = 'Menyiapkan ZIP...';
+
+        try {
+            const response = await fetch('/api/download-zip', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/zip, application/json',
+                },
+                body: JSON.stringify({ ids }),
+            });
+
+            if (!response.ok) {
+                let message = 'Gagal membuat ZIP.';
+
+                try {
+                    const result = await response.json();
+                    message = result.error || message;
+                } catch {
+                    // Respons bukan JSON.
+                }
+
+                throw new Error(message);
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = 'airbridge-files.zip';
+            document.body.append(link);
+            link.click();
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setStatus(uploadStatus, `${ids.length} file berhasil disiapkan untuk diunduh dalam ZIP.`);
+        } catch (error) {
+            setStatus(uploadStatus, error.message || 'Gagal mengunduh ZIP.', true);
+        } finally {
+            downloadZipBtn.textContent = 'Unduh ZIP';
+            updateFileSelection();
+        }
+    });
+
+    refreshBtn.addEventListener('click', loadFiles);
+
+    logoutBtn.addEventListener('click', async () => {
+        logoutBtn.disabled = true;
+
+        try {
+            const result = await api('/api/unpair', { method: 'POST' });
+            setStatus(pairStatus, result.message);
+            showPairing();
+        } catch (error) {
+            setStatus(uploadStatus, error.message, true);
+        } finally {
+            logoutBtn.disabled = false;
+        }
+    });
+
+    checkSession();
+</script>
+</body>
+</html>
